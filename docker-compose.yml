@@ -2,24 +2,71 @@ version: "3.9"
 
 services:
 
-  hello-world:
-    image: "traefik/whoami"
-    container_name: "simple-service"
+  sonarqube:
+    image: git.ozeliurs.com/ozeliurs/sonarqube:10.1.2
     restart: unless-stopped
+    container_name: sonarqube
+    depends_on:
+      sonarqube-postgres:
+        condition: service_healthy
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://sonarqube-postgres:5432/sonar
+    env_file:
+      - .sonarqube.env
+    volumes:
+      - ./sonarqube/data:/opt/sonarqube/data
+      - ./sonarqube/extensions:/opt/sonarqube/extensions
+      - ./sonarqube/logs:/opt/sonarqube/logs
     networks:
       - traefik
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.simple-service.rule=Host(`hello-world.${BASE_DOMAIN:-ozeliurs.com}`)"
-      - "traefik.http.routers.simple-service.entrypoints=websecure"
-      - "traefik.http.routers.simple-service.tls=true"
-      - "traefik.http.routers.simple-service.tls.certresolver=cloudflare"
-      - "traefik.http.services.simple-service.loadbalancer.server.port=80"
+      - "traefik.http.routers.sonarqube.rule=Host(`sonarqube.ozeliurs.com`)"
+      - "traefik.http.routers.sonarqube.entrypoints=websecure"
+      - "traefik.http.routers.sonarqube.tls=true"
+      - "traefik.http.routers.sonarqube.tls.certresolver=cloudflare"
     healthcheck:
-      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:80" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:9000" ]
+
+  sonarqube-postgres:
+    image: postgres:12
+    restart: always
+    container_name: sonarqube-postgres
+    env_file:
+      - .sonarqube.env
+    volumes:
+      - ./postgresql:/var/lib/postgresql
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=false"
+    healthcheck:
+      test: [ "CMD", "pg_isready" ]
+
+  sonar_buddy:
+    image: ozeliurs/sonar-buddy:latest
+    restart: unless-stopped
+    container_name: sonar-buddy
+    depends_on:
+      sonarqube:
+        condition: service_healthy
+    env_file:
+      - .sonarqube.env
+    environment:
+      - SONAR_HOST="sonarqube.ozeliurs.com"
+      - BASE_URL="https://sonarqube.ozeliurs.com/reset_password"
+    volumes:
+      - ./users.csv:/app/users.csv
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sonarbuddy.rule=Host(`sonarqube.ozeliurs.com`) && PathPrefix(`/reset_password`)"
+      - "traefik.http.routers.sonarbuddy.entrypoints=websecure"
+      - "traefik.http.routers.sonarbuddy.tls=true"
+      - "traefik.http.routers.sonarbuddy.tls.certresolver=cloudflare"
+      - "traefik.http.routers.sonarbuddy.service=sonarbuddy"
+      - "traefik.http.services.sonarbuddy.loadbalancer.server.port=5000"
 
 
 networks:

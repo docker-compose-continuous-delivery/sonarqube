@@ -5,3 +5,5 @@
 !*.secret
 
 # git-secret-encrypted
+users.csv
+.sonarqube.env
