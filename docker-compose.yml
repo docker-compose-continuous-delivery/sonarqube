@@ -35,7 +35,7 @@ services:
     env_file:
       - .sonarqube.env
     volumes:
-      - ./postgresql:/var/lib/postgresql
+      - ./postgresql/data:/var/lib/postgresql/data
     networks:
       - traefik
     labels:
