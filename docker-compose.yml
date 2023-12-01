@@ -41,9 +41,9 @@ services:
     labels:
       - "traefik.enable=false"
     healthcheck:
-      test: [ "CMD", "pg_isready" ]
+      test: [ "CMD", "pg_isready", "-U", "sonar" ]
 
-  sonar_buddy:
+  sonar-buddy:
     image: ozeliurs/sonar-buddy:latest
     restart: unless-stopped
     container_name: sonar-buddy
