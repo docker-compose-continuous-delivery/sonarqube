@@ -1,3 +1,7 @@
+## Specific to Sonarqube 
+
+`sudo sysctl -w vm.max_map_count=262144`
+
 ## First time deployment
 
 If your server does not have a gpg key, you have to generate one. You can do so by running the following command:
